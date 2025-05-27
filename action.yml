@@ -93,19 +93,26 @@ runs:
     - name: Download and run configuration script
       id: run-configuration-script
       run: |
-        mkdir -p $GITHUB_WORKSPACE/.datadog
+        # Determine the appropriate workspace directory
+        if [ -n "$DD_WORKSPACE_PATH" ]; then
+          WORKSPACE_DIR="$DD_WORKSPACE_PATH"
+        else
+          WORKSPACE_DIR="$GITHUB_WORKSPACE"
+        fi
 
-        if [ "$GITHUB_WORKSPACE" != "/github/workspace" ] && mkdir -p /github/workspace >/dev/null 2>&1; then
+        mkdir -p "$WORKSPACE_DIR/.datadog"
+
+        if [ "$WORKSPACE_DIR" != "/github/workspace" ] && mkdir -p /github/workspace >/dev/null 2>&1; then
           # See https://docs.github.com/en/actions/creating-actions/creating-a-docker-container-action#accessing-files-created-by-a-container-action
           # When running a Docker container action, the Github workspace is available at a hard-coded path of /github/workspace
           # When running a "regular", the workspace path varies.
           # The symlink trick below is needed to make the same path /github/workspace/.datadog available for all types of actions
           if [ ! -e /github/workspace/.datadog ]; then
-            ln -s $GITHUB_WORKSPACE/.datadog /github/workspace/.datadog
+        ln -s "$WORKSPACE_DIR/.datadog" /github/workspace/.datadog
           fi
           export DD_TRACER_FOLDER=/github/workspace/.datadog
         else
-          export DD_TRACER_FOLDER=$GITHUB_WORKSPACE/.datadog
+          export DD_TRACER_FOLDER="$WORKSPACE_DIR/.datadog"
         fi
 
         script_filepath="install_test_visibility.sh"
